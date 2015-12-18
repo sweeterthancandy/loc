@@ -201,25 +201,29 @@ namespace{
                                 : file_filter_(std::move(file_filter))
                         {}
                         std::shared_ptr<node> make_impl(const bf::directory_entry& de){
-                                switch( de.status().type() ){
-                                        case bf::file_type::regular_file:
-                                                if( file_filter_( de.path().string() ) )
-                                                        return std::make_shared<file_node>(de.path());
-                                                return std::shared_ptr<node>();
-                                        case bf::file_type::directory_file:
-                                                {
-                                                        auto tmp = std::make_shared<directory_node>(de.path());
-                                                        for(bf::directory_iterator di(de.path()),de;di!=de;++di){
-                                                                if( auto child_maybe = this->make_impl( *di ) ){
-                                                                        tmp->push_child( std::move( child_maybe ) );
+                                try{
+                                        switch( de.status().type() ){
+                                                case bf::file_type::regular_file:
+                                                        if( file_filter_( de.path().string() ) )
+                                                                return std::make_shared<file_node>(de.path());
+                                                        return std::shared_ptr<node>();
+                                                case bf::file_type::directory_file:
+                                                        {
+                                                                auto tmp = std::make_shared<directory_node>(de.path());
+                                                                for(bf::directory_iterator di(de.path()),de;di!=de;++di){
+                                                                        if( auto child_maybe = this->make_impl( *di ) ){
+                                                                                tmp->push_child( std::move( child_maybe ) );
+                                                                        }
                                                                 }
+                                                                return tmp;
                                                         }
-                                                        return tmp;
-                                                }
-                                        default:
-                                                return std::shared_ptr<node>();
+                                                default:
+                                                        break;
+                                        }
+                                } catch( const std::exception& e){
+                                        // ignore it
                                 }
-                                assert(0);
+                                return std::shared_ptr<node>();
                         }
                         node_handle make(const bf::directory_entry& de){
                                 auto tmp = this->make_impl(de);
@@ -517,12 +521,12 @@ namespace{
                         }
                         void operator()(directory_node& dn)final{
                                 auto aptr = stack_.back();
-                                dn.data() = aptr;
                                 stack_.pop_back();
+                                dn.data() = aptr;
                                 
                                 stack_.back()->operator()( *aptr );
                         }
-                        virtual void begin_children()final{
+                        void begin_children()final{
                                 stack_.emplace_back(std::make_shared<accumulator>());
                         }
                 private:
@@ -659,7 +663,7 @@ int main(int argc, char** argv){
 
                 {
                         std::vector<std::thread> tg;
-                        for( size_t i=0;i!=std::thread::hardware_concurrency() * 10 ; ++ i)
+                        for( size_t i=0;i!=std::thread::hardware_concurrency() * 100 ; ++ i)
                                 tg.emplace_back( [&io](){io.run();});
                         boost::for_each( tg, std::mem_fn(&std::thread::join));
                 }
