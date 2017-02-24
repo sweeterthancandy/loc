@@ -3,7 +3,7 @@ CXXFLAGS+=-ggdb3
 
 CXX=clang++
 
-LDLIBS+=-lboost_filesystem
+LDLIBS+=-lstdc++fs
 LDLIBS+=-lboost_system
 LDLIBS+=-lboost_program_options
 LDLIBS+=-lpthread

@@ -15,13 +15,14 @@
 #include <boost/mpl/size_t.hpp>
 #include <boost/mpl/char.hpp>
 #include <boost/range/algorithm.hpp>
-#include <boost/xpressive/xpressive.hpp>
 #include <boost/program_options.hpp>
 #include <fstream>
+#include <regex>
+#include <experimental/filesystem>
 
 namespace{
 
-        namespace bf = boost::filesystem;
+        namespace fs = std::experimental::filesystem;
 
         namespace s_tree{
 
@@ -31,7 +32,7 @@ namespace{
                         struct sorter;
                         struct pruner;
 
-                        explicit node(const bf::path& p):path_(p){}
+                        explicit node(const fs::path& p):path_(p){}
                         virtual ~node()=default;
                         virtual void accept(visitor&)=0;
                         virtual void bu_accept(visitor&)=0;
@@ -58,9 +59,9 @@ namespace{
                                 return *reinterpret_cast<const T*>(data_.get());
                         }
 
-                        const bf::path& path()const{return path_;}
+                        const fs::path& path()const{return path_;}
                 private:
-                        bf::path path_;
+                        fs::path path_;
                         std::shared_ptr<void> data_;
                 };
 
@@ -106,7 +107,7 @@ namespace{
                         
 
                 struct  file_node : public node{
-                        file_node(const bf::path& p):node(p){}
+                        file_node(const fs::path& p):node(p){}
                         void accept(visitor& v)final{
                                 v(*this);
                         }
@@ -122,7 +123,7 @@ namespace{
                         size_t sort_order()const final{return 1;}
                 };
                 struct  directory_node : public node{
-                        directory_node(const bf::path& p):node(p){}
+                        directory_node(const fs::path& p):node(p){}
                         void push_child( std::shared_ptr<node> child){
                                 children_.push_back( std::move( child ) );
                         }
@@ -200,17 +201,17 @@ namespace{
                         tree_maker( filter_t file_filter = [](const std::string&)->bool{return true;})
                                 : file_filter_(std::move(file_filter))
                         {}
-                        std::shared_ptr<node> make_impl(const bf::directory_entry& de){
+                        std::shared_ptr<node> make_impl(const fs::directory_entry& de){
                                 try{
                                         switch( de.status().type() ){
-                                                case bf::file_type::regular_file:
+                                                case fs::file_type::regular:
                                                         if( file_filter_( de.path().string() ) )
                                                                 return std::make_shared<file_node>(de.path());
                                                         return std::shared_ptr<node>();
-                                                case bf::file_type::directory_file:
+                                                case fs::file_type::directory:
                                                         {
                                                                 auto tmp = std::make_shared<directory_node>(de.path());
-                                                                for(bf::directory_iterator di(de.path()),de;di!=de;++di){
+                                                                for(fs::directory_iterator di(de.path()),de;di!=de;++di){
                                                                         if( auto child_maybe = this->make_impl( *di ) ){
                                                                                 tmp->push_child( std::move( child_maybe ) );
                                                                         }
@@ -225,7 +226,7 @@ namespace{
                                 }
                                 return std::shared_ptr<node>();
                         }
-                        node_handle make(const bf::directory_entry& de){
+                        node_handle make(const fs::directory_entry& de){
                                 auto tmp = this->make_impl(de);
                                 if( ! tmp )
                                         BOOST_THROW_EXCEPTION(std::domain_error("not a valid directory entry"));
@@ -637,14 +638,13 @@ int main(int argc, char** argv){
                 }
 
 
-                bf::directory_entry head_de( vm["root"].as<std::string>() );
+                fs::directory_entry head_de( vm["root"].as<std::string>() );
 
 
-                namespace bx = boost::xpressive;
-                bx::sregex file_rgx = bx::sregex::compile( vm["file-regex"].as<std::string>() );
+                std::regex file_rgx{vm["file-regex"].as<std::string>()};
 
                 auto cpp_filter = [&file_rgx](const std::string& path)->bool{
-                        return bx::regex_search( path, file_rgx );
+                        return std::regex_search( path, file_rgx );
                 };
 
                 auto filter_debugger = [&cpp_filter](const std::string& path)->bool{
@@ -661,12 +661,10 @@ int main(int argc, char** argv){
                 aux::word_count_visitor wcv(io);
                 h.accept(wcv);
 
-                {
-                        std::vector<std::thread> tg;
-                        for( size_t i=0;i!=std::thread::hardware_concurrency() * 100 ; ++ i)
-                                tg.emplace_back( [&io](){io.run();});
-                        boost::for_each( tg, std::mem_fn(&std::thread::join));
-                }
+                std::vector<std::thread> tg;
+                for( size_t i=0;i!=std::thread::hardware_concurrency() * 100 ; ++ i)
+                        tg.emplace_back( [&io](){io.run();});
+                boost::for_each( tg, std::mem_fn(&std::thread::join));
 
                 aux::tally_visitor tv(io);
                 h.bu_accept( tv );
