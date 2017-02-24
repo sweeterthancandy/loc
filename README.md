@@ -2,6 +2,7 @@
 small C++ program to print the lines of code in a directory
 
 for examples
+
         ./loc --max-depth 2 /store/repo/linus
          20,653,728 linus
              \______ 12,850,773 drivers
