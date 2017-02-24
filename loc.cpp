@@ -5,12 +5,6 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/exception/all.hpp>
 #include <boost/filesystem.hpp>
-#include <boost/variant/variant.hpp>
-#include <boost/variant/static_visitor.hpp>
-#include <boost/variant/recursive_wrapper.hpp>
-#include <boost/fusion/container/vector.hpp>
-#include <boost/fusion/include/at_c.hpp>
-#include <boost/fusion/include/make_vector.hpp>
 #include <boost/asio.hpp>
 #include <boost/mpl/size_t.hpp>
 #include <boost/mpl/char.hpp>
@@ -340,7 +334,8 @@ namespace{
                                         : use_color_(use_color)
                                         , print_files_(print_files)
                                         , max_depth_(max_depth)
-                                {}
+                                {
+                                }
                                 std::string format_file(const std::string& s){
                                         if( use_color_ )
                                                 return color_formatter::color_red(s);
@@ -364,9 +359,6 @@ namespace{
                                 const size_t max_depth_;
                         };
 
-                        using use_ml = boost::mpl::false_;
-
-                        
                         template<typename... Args>
                         pretty_printer(Args&&... args):
                                 policy_(std::forward<Args>(args)...)
@@ -668,13 +660,19 @@ int main(int argc, char** argv){
                 aux::word_count_visitor wcv(io);
                 h.accept(wcv);
 
+                #if 0
                 std::vector<std::thread> tg;
-                for( size_t i=0;i!=std::thread::hardware_concurrency() * 100 ; ++ i)
+                for( size_t i=0;i!=std::thread::hardware_concurrency() * 2 ; ++ i)
                         tg.emplace_back( [&io](){io.run();});
                 boost::for_each( tg, std::mem_fn(&std::thread::join));
+                #endif
+                io.run();
+                std::cerr << "done word counting\n";
 
                 aux::tally_visitor tv(io);
                 h.bu_accept( tv );
+                io.run();
+                std::cerr << "done tallying counting\n";
 
                 aux::lines_sorter ls;
                 h.sort( ls );

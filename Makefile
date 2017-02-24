@@ -1,5 +1,5 @@
 CXXFLAGS+=-std=c++11
-CXXFLAGS+=-ggdb3
+CXXFLAGS+=-O3
 
 CXX=clang++
 
