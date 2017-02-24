@@ -336,20 +336,42 @@ namespace{
                                         , max_depth_(max_depth)
                                 {
                                 }
-                                std::string format_file(const std::string& s){
+                                std::string format_file(const std::string& s)const{
                                         if( use_color_ )
                                                 return color_formatter::color_red(s);
                                         return s;
                                 }
-                                std::string format_dir(const std::string& s){
+                                std::string format_dir(const std::string& s)const{
                                         if( use_color_ )
                                                 return color_formatter::color_purple(s);
                                         return s;
                                 }
-                                std::string format_number(const std::string& s){
+                                std::string format_number(const std::string& s)const{
                                         if( use_color_)
                                                 return color_formatter::color_blue(s);
                                         return s;
+                                }
+                                std::string render_number(std::uintmax_t val)const{
+                                        std::string aux{ boost::lexical_cast<std::string>(val) };
+                                        std::string ret;
+
+                                        /*
+
+                                           1 1       -> 1          0
+                                           2 12      -> 12         0
+                                           3 123     -> 123        0
+                                           4 1234    -> 1,234      1
+                                           5 12345   -> 12,234     1
+                                           6 123456  -> 123,456    1
+                                           7 1234567 -> 1,234,456  2
+
+                                        */
+                                        for(size_t i = 0; i!= aux.size(); ++i){
+                                                if( i != 0 && ( aux.size() - i ) % 3 == 0 )
+                                                        ret += ',';
+                                                ret += aux[i];
+                                        }
+                                        return std::move(ret);
                                 }
                                 bool print_files()const{return print_files_;}
                                 size_t max_depth()const{return max_depth_;}
@@ -386,7 +408,7 @@ namespace{
                                 auto lines = fn.data_as<accumulator>().lines();
                                 sstr << " " << 
                                         policy_.format_number(
-                                                boost::lexical_cast<std::string>(
+                                                policy_.render_number(
                                                         fn.data_as<accumulator>().lines()))
                                         << " ";
                                 sstr << 
@@ -399,7 +421,7 @@ namespace{
                                 if( not ( stack_.size() > policy_.max_depth() ) ){
                                         auto lines = dn.data_as<accumulator>().lines();
                                         std::stringstream sstr, sstr2;
-                                        sstr << " " << dn.data_as<accumulator>().lines() << " ";
+                                        sstr << " " << policy_.render_number(dn.data_as<accumulator>().lines()) << " ";
                                         size_t size = sstr.str().size();
 
                                         sstr2 << 
