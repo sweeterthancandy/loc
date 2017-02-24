@@ -615,6 +615,9 @@ int main(int argc, char** argv){
                         ("file-regex",po::value<std::string>()->default_value(
                                         R"__(\.(hpp|cpp|h|c|cc|hxx|cxx)$)__"
                                 ),"regular expression for files")
+                        ("file-black-list-regex",po::value<std::string>()->default_value(
+                                        R"__((CMakeFiles))__"
+                                ),"regular expression for files")
                         ("help",po::value<bool>(&help)->default_value(false)->implicit_value(true),
                          "print this message")
 
@@ -642,8 +645,12 @@ int main(int argc, char** argv){
 
 
                 std::regex file_rgx{vm["file-regex"].as<std::string>()};
+                std::regex file_blacklist{vm["file-black-list-regex"].as<std::string>()};
 
-                auto cpp_filter = [&file_rgx](const std::string& path)->bool{
+                auto cpp_filter = [&file_rgx, &file_blacklist](const std::string& path)->bool{
+                        // blacklist
+                        if( std::regex_search( path, file_blacklist)  )
+                                return false;
                         return std::regex_search( path, file_rgx );
                 };
 
