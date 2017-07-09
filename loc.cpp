@@ -623,8 +623,8 @@ int main(int argc, char** argv){
                 po::options_description desc;
                 desc.add_options()
                         ("max-depth",po::value<size_t>()->default_value(-1),"maximum depth")
-                        ("color",po::value<bool>()->default_value(false)->implicit_value(true),"coloring policy")
-                        ("print-files",po::value<bool>()->default_value(false)->implicit_value(true),"file print policy")
+                        ("no-color",po::value<bool>()->default_value(false)->implicit_value(true),"coloring policy")
+                        ("no-print-files",po::value<bool>()->default_value(false)->implicit_value(true),"file print policy")
                         ("root",po::value<std::string>()->default_value("."),"root")
                         ("file-regex",po::value<std::string>()->default_value(
                                         R"__(\.(hpp|cpp|h|c|cc|hxx|cxx)$)__"
@@ -689,12 +689,10 @@ int main(int argc, char** argv){
                 boost::for_each( tg, std::mem_fn(&std::thread::join));
                 #endif
                 io.run();
-                std::cerr << "done word counting\n";
 
                 aux::tally_visitor tv(io);
                 h.bu_accept( tv );
                 io.run();
-                std::cerr << "done tallying counting\n";
 
                 aux::lines_sorter ls;
                 h.sort( ls );
@@ -703,8 +701,8 @@ int main(int argc, char** argv){
                 h.prune(  ep );
 
                 aux::pretty_printer pp(
-                        vm["color"].as<bool>(),
-                        vm["print-files"].as<bool>(),
+                        ! vm["no-color"].as<bool>(),
+                        ! vm["no-print-files"].as<bool>(),
                         vm["max-depth"].as<size_t>());
                 h.accept( pp );
 
