@@ -630,7 +630,7 @@ int main(int argc, char** argv){
                                         R"__(\.(hpp|cpp|h|c|cc|hxx|cxx)$)__"
                                 ),"regular expression for files")
                         ("file-black-list-regex",po::value<std::string>()->default_value(
-                                        R"__((CMakeFiles))__"
+                                        R"__((CMakeFiles|node_modules))__"
                                 ),"regular expression for files")
                         ("help",po::value<bool>(&help)->default_value(false)->implicit_value(true),
                          "print this message")
